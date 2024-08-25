@@ -2,6 +2,7 @@ from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
 from spiders.hiik_default_spider import HIIKDefaultSpider
 import logging
+
 # Set up logger and logger format
 logging.basicConfig(level=logging.INFO)
 formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
@@ -12,6 +13,7 @@ logger.info("Logger set up")
 
 
 def main():
+    start_urls = ["https://karennews.org/post-sitemap3.xml"]
     start_urls = ["https://karennews.org/"]
     allowed_domains = ["karennews.org"]
     settings = get_project_settings()

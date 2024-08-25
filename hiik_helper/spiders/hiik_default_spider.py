@@ -30,6 +30,7 @@ class HIIKDefaultSpider(scrapy.Spider):
             "karennews.org/category/article",
             "karennews.org/2024",
         ]
+        self.link_extractor = LinkExtractor()
 
         self.found_articles: dict[str, dict[str, str]] = {}
         self.content_class_article = "entry-content entry clearfix"
@@ -50,65 +51,72 @@ class HIIKDefaultSpider(scrapy.Spider):
         url = response.url
 
         if (
-            self.current_page_is_article(response)
-            and url not in self.visited_json_urls
+            url not in self.visited_json_urls
             and url not in self.visited_urls_this_scrape
         ):
-            # Get content of the article on the page
-            article_content = self.parse_article(response)
+            if self.current_page_is_article(response):
+                # Get content of the article on the page
+                article_content = self.parse_article(response)
 
-            # Add the article content to the list of found articles
+                # Add the article content to the list of found articles
 
-            for supposed_article in article_content:
-                # Get article:modified_time from meta property
-                article_modified_time = response.xpath(
-                    "//meta[@property='article:published_time']/@content"
-                ).get()
+                for supposed_article in article_content:
+                    # Get article:modified_time from meta property
+                    article_modified_time = response.xpath(
+                        "//meta[@property='article:published_time']/@content"
+                    ).get()
 
-                # Get the headline of the article
-                headline = response.xpath("//h1/text()").get()
+                    # Get the headline of the article
+                    headline = response.xpath("//h1/text()").get()
 
-                # Get subheadline of the article
-                subheadline = response.xpath("//h2/text()").get()
+                    # Get subheadline of the article
+                    subheadline = response.xpath("//h2/text()").get()
 
-                # Get all paragraphs of the article
-                paragraphs = response.xpath("//p/text()").getall()
-                paragraph_text = "\n\n".join(paragraphs)
+                    # Get all paragraphs of the article
+                    paragraphs = response.xpath("//p/text()").getall()
+                    paragraph_text = "\n\n".join(paragraphs)
 
-                # Add the article to the list of found articles
-                article_dict = {
-                    "url": url,
-                    "accessing-date": str(datetime.datetime.now(datetime.UTC)),
-                    "last-modification": article_modified_time,
-                    "headline": headline,
-                    "subheadline": subheadline,
-                    "paragraphs": paragraph_text,
-                }
-                self.found_articles[url] = article_dict
+                    # Add the article to the list of found articles
+                    article_dict = {
+                        "url": url,
+                        "accessing-date": str(datetime.datetime.now(datetime.UTC)),
+                        "last-modification": article_modified_time,
+                        "headline": headline,
+                        "subheadline": subheadline,
+                        "paragraphs": paragraph_text,
+                    }
+                    self.found_articles[url] = article_dict
 
-                self.visited_urls_this_scrape.add(url)
+                    self.visited_urls_this_scrape.add(url)
 
-        elif self.current_page_is_list(response):
-            # Get content of the article on the page
-            article_list = self.parse_article_list(response)
+            elif self.current_page_is_list(response):
+                # Get content of the article on the page
+                article_list = self.parse_article_list(response)
 
-            for supposed_article in article_list:
-                # Get the more link of the article
-                more_link_url = self.get_url_in_article(supposed_article)
-                if self.link_is_article(more_link_url):
-                    article_links.add(more_link_url)
+                for supposed_article in article_list:
+                    # Get the more link of the article
+                    more_link_url = self.get_url_in_article(supposed_article)
+                    if self.link_is_article(more_link_url):
+                        article_links.add(more_link_url)
 
-        # Extract all links from the page to find new article pages
-        extracted_links = LinkExtractor(
-            allow_domains=self.allowed_domains
-        ).extract_links(response)
+        extracted_links = self.link_extractor.extract_links(response)
         # Filter out the article links
+
         article_links = article_links.union(
-            set([link for link in extracted_links if self.link_is_article(link.url)])
+            set(
+                [link.url for link in extracted_links if self.link_is_article(link.url)]
+            )
         )
 
+        yield_links = [
+            link
+            for link in article_links
+            if link not in self.visited_json_urls
+            and link not in self.visited_urls_this_scrape
+        ]
+
         # Follow the next article link
-        for link in article_links:
+        for link in yield_links:
             yield response.follow(link, callback=self.parse)
 
     def current_page_is_article(self, response):
