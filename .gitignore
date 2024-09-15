@@ -12,3 +12,7 @@
 */.DS_Store
 */.vscode
 */.idea
+api_key.txt
+hiik_helper/spiders/__pycache__/__init__.cpython-311.pyc
+hiik_helper/spiders/__pycache__/hiik_default_spider.cpython-311.pyc
+hiik_helper/spiders/__pycache__/hiik_xml_spider.cpython-311.pyc

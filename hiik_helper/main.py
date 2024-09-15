@@ -1,6 +1,7 @@
 from scrapy.crawler import CrawlerProcess, CrawlerRunner
 from scrapy.utils.project import get_project_settings
-from spiders.hiik_default_spider import HIIKDefaultSpider
+from spiders.hiik_default_spider import HiikDefaultSpider
+from spiders.hiik_xml_spider import HiikXmlSpider
 import logging
 
 # Set up logger and logger format
@@ -13,7 +14,7 @@ logger.info("Logger set up")
 
 
 def main():
-    start_urls = ["https://karennews.org/post-sitemap3.xml"]
+    # start_urls = ["https://karennews.org/post-sitemap3.xml"]
     start_urls = ["https://karennews.org/"]
     allowed_domains = ["karennews.org"]
     settings = get_project_settings()
@@ -25,7 +26,7 @@ def main():
 
     runner = CrawlerProcess(settings=settings, install_root_handler=False)
     runner.crawl(
-        HIIKDefaultSpider,
+        HiikDefaultSpider,
         start_urls=start_urls,
         allowed_domains=allowed_domains,
     )

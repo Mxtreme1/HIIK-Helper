@@ -13,14 +13,14 @@ from scrapy.signals import spider_closed
 from scrapy.signalmanager import dispatcher
 
 
-class HIIKDefaultSpider(scrapy.Spider):
+class HiikDefaultSpider(scrapy.Spider):
     name = "HIIK Default Spider"
 
     def __init__(
         self, start_urls: list[str], allowed_domains: list[str], *args, **kwargs
     ):
         logger.info("Initializing spider")
-        super(HIIKDefaultSpider, self).__init__(*args, **kwargs)
+        super(HiikDefaultSpider, self).__init__(*args, **kwargs)
         # Add spider close handler to save the found articles to a JSON file
         dispatcher.connect(self.spider_closing, signal=spider_closed)
 
