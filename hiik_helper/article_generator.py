@@ -1,7 +1,10 @@
 import json
 import random
+from typing import Any
 from openai import OpenAI
 import os
+from instructor.batch import BatchJob
+from instructor import from_openai
 
 from pydantic_models import ArticleGenerationPrompt
 
@@ -47,7 +50,7 @@ class ArticleGenerator:
 
         # Reads the API key from the environment variable
         # export OPENAI_API_KEY="your_api_key_here"
-        self.client = OpenAI()
+        self.client = from_openai(OpenAI())
 
         self.system_prompt: str = (
             """
@@ -107,14 +110,14 @@ class ArticleGenerator:
         Further uses the pydantic model ArticleGenerationPrompt to validate the response.
         """
 
-        articles = self.client.beta.chat.completions.parse(
+        articles = self.client.chat.completions.create(
             model=self.model_name,
             messages=[
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": prompt},
             ],
             temperature=self.temperature,
-            response_format=ArticleGenerationPrompt,
+            response_model=ArticleGenerationPrompt,
             # tools=[openai.pydantic_function_tool(ArticleGenerationPrompt)],
         )
 
@@ -164,13 +167,8 @@ class ArticleGenerator:
         prompt = self.create_openai_prompt(random_articles)
         response = self.send_openai_request(prompt)
 
-        # Extract the articles from the response
-        articles = response.choices[
-            0
-        ].message.parsed  # Received articles as pydantic model (see pydantic_models.py)
-
         # Save generated articles to JSON file
-        self.save_generated_articles(articles)
+        self.save_generated_articles(response)
 
     def generate(self, n: int):
         """
@@ -214,76 +212,33 @@ class ArticleGenerator:
             f"{n} times generated and saved successfully under {self.article_output_path}."
         )
 
-    def create_batch_file(
-        self,
-        n: int,
-        batch_file_path: str = "batch_file.jsonl",
-        custom_id_prefix: str = "request",
-    ):
+    def create_message_generator(self, n: int, custom_id_prefix: str = "request"):
         """
-        Creates a json line file of the prompts to be used with OpenAI's batch API.
-
-        Args:
-        n: int
-            Number of times to generate using the GPT model
-        batch_file_path: str
-            Path to the JSON line file of the prompts to be used with OpenAI's batch API
-        custom_id_prefix: str
-            The prefix for the custom ID of the generated articles
+        Creates a generator of the messages to be used with instructor's BatchJob which then sends the batch request to the OpenAI API.
         """
 
-        # Check if the file exists and create it if it does overwrite it
-        with open(batch_file_path, "w") as f:
-            f.write("")
-
-        # Create the batch file
         for i in range(0, n):
             random_articles: list[dict] = self.choose_random_articles()
             prompt = self.create_openai_prompt(random_articles)
 
-            prompt = {
-                "custom_id": f"{custom_id_prefix}-{i+1}",
-                "method": "POST",
-                "url": "/v1/chat/completions",
-                "body": {
-                    "model": self.model_name,
-                    "temperature": self.temperature,
-                    "messages": [
-                        {"role": "system", "content": self.system_prompt},
-                        {"role": "user", "content": prompt},
-                    ],
-                },
-            }
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": prompt},
+            ]
 
-            # Save the prompt to the batch file immediately as it might be too large to store in memory
-            with open(batch_file_path, "a") as f:
-                f.write(json.dumps(prompt) + "\n")
-            print(f"Batch file: {i+1} out of {n} created.")
+            yield messages
 
-    def generate_batch(self, batch_file_path: str = "batch_file.jsonl"):
+    def create_batch_json(self, message_generator, batch_jsonl_path: str):
         """
         Sends a batch request to the OpenAI API with the prompts in the batch file.
-        The generated articles are saved to the JSON file under the path article_output_path.
-
-        Args:
-        batch_file_path: str
-            Path to the JSON line file of the prompts to be used with OpenAI's batch API
         """
 
-        batch_input_file = self.client.files.create(
-            file=open(batch_file_path, "rb"), purpose="batch"
+        BatchJob.create_from_messages(
+            messages_batch=message_generator,
+            model=self.model_name,
+            file_path=batch_jsonl_path,
+            response_model=ArticleGenerationPrompt,
         )
-        print(f"Batch request uploaded successfully.")
-
-        batch_object = self.client.batches.create(
-            input_file_id=batch_input_file.id,
-            endpoint="/v1/chat/completions",
-            completion_window="24h",
-            metadata={"description": "Batch request for article generation."},
-        )
-
-        print(f"Batch request sent successfully.")
-        print(batch_object)
 
     def read_batch_response_jsonl(self, batch_response_path: str):
         """
@@ -298,9 +253,18 @@ class ArticleGenerator:
             List of the generated articles in the pydantic model format
         """
 
-        with open(batch_response_path, "r") as f:
-            responses = f.readlines()
+        parsed, unparsed = BatchJob.parse_from_file(
+            file_path=batch_response_path, response_model=ArticleGenerationPrompt
+        )
+        for i, article in enumerate(parsed):
+            self.save_generated_articles(article)
+            print(f"Generated responses: {i+1} out of {len(parsed)} saved.")
 
-        responses = [json.loads(response) for response in responses]
+        # return parsed, unparsed
 
-        return responses
+        # with open(batch_response_path, "r") as f:
+        #     responses = f.readlines()
+
+        # responses = [json.loads(response) for response in responses]
+
+        # return responses
