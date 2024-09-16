@@ -17,3 +17,17 @@ hiik_helper/spiders/__pycache__/__init__.cpython-311.pyc
 hiik_helper/spiders/__pycache__/hiik_default_spider.cpython-311.pyc
 hiik_helper/spiders/__pycache__/hiik_xml_spider.cpython-311.pyc
 .DS_Store
+data/created_articles/batch_data/batch_0.jsonl
+data/created_articles/batch_data/batch_1.jsonl
+data/created_articles/batch_data/batch_2.jsonl
+data/created_articles/batch_data/batch_A.jsonl
+data/created_articles/batch_data/batch_B.jsonl
+data/created_articles/batch_data/batch_C.jsonl
+data/created_articles/batch_data/batch_D.jsonl
+data/created_articles/batch_data/old_batch_a_old.jsonl
+data/created_articles/batch_data/old_batch_b_old.jsonl
+hiik_helper/article_generator_openai/__pycache__/article_generator.cpython-311.pyc
+hiik_helper/pydantic_models/__pycache__/__init__.cpython-311.pyc
+hiik_helper/pydantic_models/__pycache__/article_corpus_model.cpython-311.pyc
+batch_file.jsonl
+generated_articles.json

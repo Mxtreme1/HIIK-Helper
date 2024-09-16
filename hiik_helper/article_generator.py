@@ -6,7 +6,7 @@ import os
 from instructor.batch import BatchJob
 from instructor import from_openai
 
-from pydantic_models import ArticleGenerationPrompt
+from pydantic_models.article_corpus_model import ArticleCorpus
 
 
 class ArticleGenerator:
@@ -117,13 +117,13 @@ class ArticleGenerator:
                 {"role": "user", "content": prompt},
             ],
             temperature=self.temperature,
-            response_model=ArticleGenerationPrompt,
+            response_model=ArticleCorpus,
             # tools=[openai.pydantic_function_tool(ArticleGenerationPrompt)],
         )
 
         return articles
 
-    def save_generated_articles(self, articles: ArticleGenerationPrompt):
+    def save_generated_articles(self, articles: ArticleCorpus):
         """
         Save the generated articles to the JSON file under the path article_output_path.
         If the file does not exist, it should be created.
@@ -237,7 +237,7 @@ class ArticleGenerator:
             messages_batch=message_generator,
             model=self.model_name,
             file_path=batch_jsonl_path,
-            response_model=ArticleGenerationPrompt,
+            response_model=ArticleCorpus,
         )
 
     def read_batch_response_jsonl(self, batch_response_path: str):
@@ -254,7 +254,7 @@ class ArticleGenerator:
         """
 
         parsed, unparsed = BatchJob.parse_from_file(
-            file_path=batch_response_path, response_model=ArticleGenerationPrompt
+            file_path=batch_response_path, response_model=ArticleCorpus
         )
         for i, article in enumerate(parsed):
             self.save_generated_articles(article)

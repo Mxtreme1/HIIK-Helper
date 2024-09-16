@@ -1,4 +1,8 @@
 from article_generator import ArticleGenerator
+from pydantic_models.article_corpus_model import (
+    ArticleCorpus,
+    read_json_to_article_generation_prompt,
+)
 
 
 def run_article_generator():
@@ -28,7 +32,7 @@ def run_article_generator():
     num_articles_to_choose = 3
 
     # Number of times to generate using the GPT model
-    times_to_generate = 10
+    times_to_generate = 1_000
 
     # Initialize the ArticleGenerator class
     article_generator = ArticleGenerator(
@@ -40,15 +44,19 @@ def run_article_generator():
     )
     # article_generator.generate(1)
 
-    # message_generator = article_generator.create_message_generator(
-    #     n=times_to_generate, custom_id_prefix=custom_id_prefix
-    # )
-    # article_generator.create_batch_json(
-    #     message_generator=message_generator, batch_jsonl_path=batch_jsonl_path
-    # )
-    generated_articles = article_generator.read_batch_response_jsonl(
-        batch_response_path=batch_response_path
+    message_generator = article_generator.create_message_generator(
+        n=times_to_generate, custom_id_prefix=custom_id_prefix
     )
+    article_generator.create_batch_json(
+        message_generator=message_generator, batch_jsonl_path=batch_jsonl_path
+    )
+    # generated_articles = article_generator.read_batch_response_jsonl(
+    #     batch_response_path=batch_response_path
+    # )
+
+    # all_generated_articles = read_json_to_article_generation_prompt(
+    #     json_path=article_output_path
+    # )
     print()
 
 
